@@ -39,26 +39,11 @@ class ChatState extends ChangeNotifier {
     }
   }
 
-  // 실제 Firestore 대신 10초마다 상담사 메시지 도착을 시뮬레이션
-  static const _mockRealtimeContents = [
-    '그렇군요, 조금 더 이야기해 주실 수 있을까요?',
-    '많이 힘드셨겠어요.',
-    '충분히 이해가 돼요. 계속 말씀해 주세요.',
-  ];
-
-  /// Firestore 실시간 스트림 연결 시뮬레이션
+  /// 실시간 메시지 스트림 연결 (Repository 스트림 구독)
   void _connectFirestore() {
-    _messageSubscription = Stream.periodic(
-      const Duration(seconds: 10),
-      (i) => ChatMessage(
-        id: 'realtime-$i',
-        roomId: roomId,
-        senderId: 'counselor-1',
-        content: _mockRealtimeContents[i % _mockRealtimeContents.length],
-        sentAt: DateTime.now(),
-        isRead: false,
-      ),
-    ).listen((msg) {
+    _messageSubscription = ChatsRepository.instance
+        .subscribeMessages(roomId)
+        .listen((msg) {
       _messages = [..._messages, msg];
       notifyListeners();
     });
@@ -93,6 +78,16 @@ class ChatState extends ChangeNotifier {
 
     try {
       await ChatsRepository.instance.sendMessage(roomId, text);
+      // 보낸 메시지를 로컬 상태 리스트에도 즉시 추가하여 화면에 반영되도록 처리
+      final newMsg = ChatMessage(
+        id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
+        roomId: roomId,
+        senderId: 'user-demo', // 현재 사용자 ID ('user-demo')
+        content: text,
+        sentAt: DateTime.now(),
+        isRead: false,
+      );
+      _messages = [..._messages, newMsg];
     } catch (e) {
       debugPrint("메시지 전송 중 오류 발생: $e");
     } finally {

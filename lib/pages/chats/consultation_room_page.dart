@@ -111,7 +111,10 @@ class _ConsultationRoomViewState extends State<_ConsultationRoomView> {
             child: ListView.builder(
               controller: _scrollController,
               itemCount: chatState.messages.length,
-              itemBuilder: (context, index) => MessageBubble(message: chatState.messages[index]),
+              itemBuilder: (context, index) => MessageBubble(
+                message: chatState.messages[index],
+                currentUserId: 'user-demo',
+              ),
             ),
           ),
           ChatInputBar(

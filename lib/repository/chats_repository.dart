@@ -58,4 +58,26 @@ class ChatsRepository {
   Future<void> sendMessage(String roomId, String content) async {
     await Future.delayed(const Duration(milliseconds: 400));
   }
+
+  // 실제 Firestore 대신 10초마다 상담사 메시지 도착을 시뮬레이션하기 위한 목 데이터
+  static const _mockRealtimeContents = [
+    '그렇군요, 조금 더 이야기해 주실 수 있을까요?',
+    '많이 힘드셨겠어요.',
+    '충분히 이해가 돼요. 계속 말씀해 주세요.',
+  ];
+
+  /// 실시간 메시지 수신 스트림 구독 (Firestore 시뮬레이션)
+  Stream<ChatMessage> subscribeMessages(String roomId) {
+    return Stream.periodic(
+      const Duration(seconds: 10),
+      (i) => ChatMessage(
+        id: 'realtime-$i',
+        roomId: roomId,
+        senderId: _counselorId,
+        content: _mockRealtimeContents[i % _mockRealtimeContents.length],
+        sentAt: DateTime.now(),
+        isRead: false,
+      ),
+    );
+  }
 }
