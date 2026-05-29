@@ -45,12 +45,13 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
   Future<void> _loadInitialMessages() async {
     _isLoadingMore = true;
 
-    final msgs =
-        await ChatsRepository.instance.fetchMessages(widget.roomId, page: 0);
+    final msgs = await ChatsRepository.instance.fetchMessages(widget.roomId, page: 0);
 
-    _messages = msgs;
-
-    _isLoadingMore = false;
+    if (!mounted) return;
+    setState(() {
+      _messages = msgs;
+      _isLoadingMore = false;
+    });
     _scrollToBottom();
   }
 
@@ -72,9 +73,12 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
         sentAt: DateTime.now(),
         isRead: false,
       ),
-    ).listen((msg) {
-      _messages.add(msg);
-      _scrollToBottom();
+    ).listen((msg) async {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(msg);
+        _scrollToBottom();
+      });
     });
   }
 
@@ -87,12 +91,12 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
   Future<void> _loadMoreMessages() async {
     _isLoadingMore = true;
     _page++;
-    final older =
-        await ChatsRepository.instance.fetchMessages(widget.roomId, page: _page);
+    final older = await ChatsRepository.instance.fetchMessages(widget.roomId, page: _page);
+    if (!mounted) return;
     setState(() {
       _messages.insertAll(0, older);
+      _isLoadingMore = false;
     });
-    _isLoadingMore = false;
   }
 
   Future<void> _sendMessage() async {
@@ -102,13 +106,16 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
     await ChatsRepository.instance.sendMessage(widget.roomId, text);
   }
 
-  void _scrollToBottom() {
+  Future<void> _scrollToBottom() async {
     if (!_scrollController.hasClients) return;
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -136,8 +143,7 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
             child: ListView.builder(
               controller: _scrollController,
               itemCount: _messages.length,
-              itemBuilder: (context, index) =>
-                  MessageBubble(message: _messages[index]),
+              itemBuilder: (context, index) => MessageBubble(message: _messages[index]),
             ),
           ),
           ChatInputBar(
@@ -154,6 +160,7 @@ class _ConsultationRoomPageState extends State<ConsultationRoomPage> {
 
   @override
   void dispose() {
+    _messageSubscription?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
