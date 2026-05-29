@@ -41,7 +41,7 @@ class ChatsRepository {
     });
   }
 
-  List<ChatMessage> _messages = _generate();
+  static final _messages = _generate();
 
   Future<List<ChatMessage>> fetchMessages(
     String roomId, {
@@ -56,15 +56,6 @@ class ChatsRepository {
   }
 
   Future<void> sendMessage(String roomId, String content) async {
-    _messages.add(
-      ChatMessage(
-        id: 'msg-${_messages.length}',
-        roomId: roomId,
-        senderId: _userId,
-        content: content,
-        sentAt: DateTime.now(),
-        isRead: false,
-      ),
-    );
+    await Future.delayed(const Duration(milliseconds: 400));
   }
 }
